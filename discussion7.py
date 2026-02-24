@@ -31,7 +31,10 @@ def load_listings(f):
     full_path = os.path.join(base_path, f)
 
     # TODO: Read the CSV using csv.reader and convert it to a list a dictionaries
-    pass
+    with open(full_path, 'r', newline='', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        listings = list(reader)
+    return listings
 
 ###############################################################################
 ##### TASK 2: CALCULATION FUNCTION (single calculation)
@@ -51,7 +54,28 @@ def calculate_avg_price_by_neighbourhood_group_and_room(listings):
         dict mapping (neighbourhood_group, room_type) -> average_price (float)
         e.g. { ('Downtown', 'Entire home/apt'): 123.45, ... }
     """
-    pass
+    totals = {}
+    counts = {}
+
+    for listing in listings:
+        neighbourhood_group = listing['neighbourhood_group']
+        room_type = listing['room_type']
+        price_str = listing['price']
+        price = float(price_str)
+
+        key = (neighbourhood_group, room_type)
+        if key not in totals:
+            totals[key] = 0.0
+            counts[key] = 0
+
+        totals[key] += price
+        counts[key] += 1
+
+    avg_prices = {}
+    for key in totals:
+        avg_prices[key] = totals[key] / counts[key]
+
+    return avg_prices
 
 
 
@@ -73,7 +97,16 @@ def write_summary_csv(out_filename, avg_prices):
         None
             Writes a CSV file with header: neighbourhood_group, room_type, average_price
     """
-    pass
+    with open(out_filename, 'w', newline='', encoding='utf-8') as csvfile:
+        fieldnames = ['neighbourhood_group', 'room_type', 'average_price']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for (neighbourhood_group, room_type), avg in sorted(avg_prices.items()):
+            writer.writerow({
+                'neighbourhood_group': neighbourhood_group,
+                'room_type': room_type,
+                'average_price': avg,
+            })
 
 ###############################################################################
 ##### UNIT TESTS (Do not modify the code below!)

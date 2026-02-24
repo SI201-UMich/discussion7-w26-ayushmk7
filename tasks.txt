@@ -1,0 +1,92 @@
+General tasks
+- Clone the GitHub Classroom repo and open it in your editor.
+- Open `Discussion7_SI201_W26.pdf` and skim the assignment description.
+- Open `discussion7.py` and read the docstrings and unit tests to understand what each function should do.
+- Open `new_york_listings_2024.csv` and quickly scan the header row to see the available columns.
+- Plan to make at least 4 commits to your repo (for example: one per major task or implementation).
+- Be sure you can run tests with `python discussion7.py` (or `python3 discussion7.py`) to execute the `unittest` suite.
+
+Implementation 1: Basic, straightforward loops
+- Implement `load_listings` using `csv.reader` and manual looping.
+  - Import the `csv` module at the top of the file (already done in starter code).
+  - Inside `load_listings`, open the CSV file using `open(f, 'r', newline='', encoding='utf-8')`.
+  - Create a `csv.reader` from the opened file.
+  - Use `next(reader)` once to read the header row and store the column names in a list.
+  - Initialize an empty list called `listings` to store each row as a dictionary.
+  - For each remaining row in the reader, build a dictionary by looping with `for i in range(len(header))` and mapping `header[i]` to `row[i]`.
+  - Append each dictionary to `listings`.
+  - Return `listings` from the function.
+- Implement `calculate_avg_price_by_neighbourhood_group_and_room` with simple aggregation.
+  - Initialize two empty dictionaries: `totals = {}` and `counts = {}`.
+  - Loop over each `listing` in `listings`.
+  - Extract `neighbourhood_group = listing['neighbourhood_group']` and `room_type = listing['room_type']`.
+  - Extract `price_str = listing['price']` and convert it to a float, e.g. `price = float(price_str)`.
+  - Create a key tuple `key = (neighbourhood_group, room_type)`.
+  - If `key` is not in `totals` yet, initialize `totals[key] = 0.0` and `counts[key] = 0`.
+  - Add `price` to `totals[key]` and increment `counts[key]` by 1.
+  - After processing all listings, create a new dictionary `avg_prices = {}`.
+  - For each `key` in `totals`, compute `avg_prices[key] = totals[key] / counts[key]`.
+  - Return `avg_prices`.
+- Implement `write_summary_csv` using `csv.writer`.
+  - Open `out_filename` in write mode with `open(out_filename, 'w', newline='', encoding='utf-8')`.
+  - Create a `csv.writer` object.
+  - Write the header row `['neighbourhood_group', 'room_type', 'average_price']`.
+  - Iterate over `avg_prices.items()` in a deterministic order (for example, `for (neighbourhood_group, room_type), avg in sorted(avg_prices.items())`).
+  - For each entry, write a row `[neighbourhood_group, room_type, avg]`.
+- Run the unit tests and confirm that all tests pass for this implementation.
+
+Implementation 2: Using csv.DictReader and DictWriter
+- Implement `load_listings` using `csv.DictReader`.
+  - Inside `load_listings`, open the CSV file using `open(f, 'r', newline='', encoding='utf-8')`.
+  - Create a `csv.DictReader` from the file instead of a plain `csv.reader`.
+  - Convert the `DictReader` into a list directly with `list(reader)` to get a list of dictionaries.
+  - Return that list; each element should already be a dictionary with string keys and values.
+- Implement `calculate_avg_price_by_neighbourhood_group_and_room` using dictionary-style access.
+  - Use the same totals-and-counts pattern from Implementation 1.
+  - For each `listing`, read `neighbourhood_group = listing['neighbourhood_group']`, `room_type = listing['room_type']`, and `price_str = listing['price']`.
+  - Convert `price_str` to `float` and aggregate just like in Implementation 1.
+  - Build and return the `avg_prices` dictionary.
+- Implement `write_summary_csv` using `csv.DictWriter`.
+  - Open `out_filename` in write mode with `open(out_filename, 'w', newline='', encoding='utf-8')`.
+  - Create a `csv.DictWriter` with `fieldnames = ['neighbourhood_group', 'room_type', 'average_price']`.
+  - Call `writer.writeheader()` to write the header row.
+  - Iterate over `avg_prices.items()` (optionally `sorted`) and for each key/value, write a row like:
+    - `writer.writerow({'neighbourhood_group': neighbourhood_group, 'room_type': room_type, 'average_price': avg})`.
+- Run the unit tests again and ensure all tests still pass with this implementation.
+
+Implementation 3: Functional / decomposition-focused style
+- Refactor `load_listings` into smaller helper functions.
+  - Write a helper (e.g., `_iter_rows(f)`) that opens the file and yields `csv.DictReader` rows.
+  - Write a helper (e.g., `_normalize_row(row)`) that can strip whitespace from keys/values if needed, still returning a dictionary of strings.
+  - In `load_listings`, call these helpers and build the final list with a list comprehension, e.g. `[ _normalize_row(row) for row in _iter_rows(f) ]`.
+  - Return the resulting list.
+- Refactor `calculate_avg_price_by_neighbourhood_group_and_room` using compact helpers.
+  - Write a helper `get_key(listing)` that returns `(listing['neighbourhood_group'], listing['room_type'])`.
+  - Write a helper `get_price(listing)` that converts `listing['price']` to a `float`.
+  - In the main function, loop over listings and call these helpers inside the loop, keeping the aggregation logic (totals and counts) very short.
+  - Build `avg_prices` as before and return it.
+- Refactor `write_summary_csv` to separate data preparation from file writing.
+  - Write a helper (e.g., `iter_summary_rows(avg_prices)`) that yields dictionaries or tuples representing each output row.
+  - In `write_summary_csv`, open the file, set up a writer (either `csv.writer` or `csv.DictWriter`), write the header, and then loop over `iter_summary_rows(avg_prices)` to write each row.
+- Run the unit tests and confirm that they still pass after refactoring.
+
+Implementation 4: Robust / error-tolerant version
+- Make `load_listings` more robust to small data issues.
+  - Keep using either the manual header approach or `csv.DictReader`, but ensure you skip completely blank lines.
+  - Optionally normalize column names by stripping surrounding whitespace from header values.
+  - Ensure all returned values remain strings so later functions can handle conversion.
+- Make `calculate_avg_price_by_neighbourhood_group_and_room` handle bad or missing prices safely.
+  - When converting `price_str` to `float`, wrap the conversion in a try/except block.
+  - If conversion fails (e.g., `ValueError` or empty string), skip that listing instead of crashing.
+  - Only increment counts and totals when the conversion succeeds.
+  - When computing averages, ensure that you only divide when the count for a key is greater than zero.
+- Make `write_summary_csv` consistent and clear.
+  - Decide how to format prices (for example, leave them as raw floats or format to a fixed number of decimal places) and apply this consistently for all rows.
+  - Ensure that you write exactly one row for each `(neighbourhood_group, room_type)` key in `avg_prices`.
+- Run the unit tests one more time and verify that all tests pass with this robust implementation.
+
+Final check
+- Choose one of your implementations (or a polished combination) to keep in `discussion7.py` for your final submission.
+- Make sure all three functions are implemented and all unit tests pass.
+- Commit your changes with a clear message and push to GitHub before submitting the repo URL on Canvas.
+
