@@ -5,6 +5,20 @@ import csv
 ###############################################################################
 ##### TASK 1: CSV READER
 ###############################################################################
+
+def _iter_rows(f):
+    """Open the CSV file and yield each row from csv.DictReader."""
+    with open(f, 'r', newline='', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            yield row
+
+
+def _normalize_row(row):
+    """Strip whitespace from keys and values; return a dictionary of strings."""
+    return {k.strip(): v.strip() for k, v in row.items()}
+
+
 def load_listings(f):
     """
     Read the Airbnb listings CSV and return a list of records.
@@ -30,15 +44,22 @@ def load_listings(f):
     base_path = os.path.abspath(os.path.dirname(__file__))
     full_path = os.path.join(base_path, f)
 
-    # TODO: Read the CSV using csv.reader and convert it to a list a dictionaries
-    with open(full_path, 'r', newline='', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile)
-        listings = list(reader)
-    return listings
+    return [_normalize_row(row) for row in _iter_rows(full_path)]
 
 ###############################################################################
 ##### TASK 2: CALCULATION FUNCTION (single calculation)
 ###############################################################################
+
+def get_key(listing):
+    """Return (neighbourhood_group, room_type) for a listing."""
+    return (listing['neighbourhood_group'], listing['room_type'])
+
+
+def get_price(listing):
+    """Convert listing['price'] to float."""
+    return float(listing['price'])
+
+
 def calculate_avg_price_by_neighbourhood_group_and_room(listings):
     """
     Calculate the average nightly price for each (neighbourhood_group, room_type) pair.
@@ -58,23 +79,15 @@ def calculate_avg_price_by_neighbourhood_group_and_room(listings):
     counts = {}
 
     for listing in listings:
-        neighbourhood_group = listing['neighbourhood_group']
-        room_type = listing['room_type']
-        price_str = listing['price']
-        price = float(price_str)
-
-        key = (neighbourhood_group, room_type)
+        key = get_key(listing)
+        price = get_price(listing)
         if key not in totals:
             totals[key] = 0.0
             counts[key] = 0
-
         totals[key] += price
         counts[key] += 1
 
-    avg_prices = {}
-    for key in totals:
-        avg_prices[key] = totals[key] / counts[key]
-
+    avg_prices = {key: totals[key] / counts[key] for key in totals}
     return avg_prices
 
 
@@ -82,6 +95,17 @@ def calculate_avg_price_by_neighbourhood_group_and_room(listings):
 ###############################################################################
 ##### TASK 3: CSV WRITER
 ###############################################################################
+
+def iter_summary_rows(avg_prices):
+    """Yield a dictionary for each output row (neighbourhood_group, room_type, average_price)."""
+    for (neighbourhood_group, room_type), avg in sorted(avg_prices.items()):
+        yield {
+            'neighbourhood_group': neighbourhood_group,
+            'room_type': room_type,
+            'average_price': avg,
+        }
+
+
 def write_summary_csv(out_filename, avg_prices):
     """
     Write the summary statistics to a CSV file.
@@ -101,12 +125,8 @@ def write_summary_csv(out_filename, avg_prices):
         fieldnames = ['neighbourhood_group', 'room_type', 'average_price']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        for (neighbourhood_group, room_type), avg in sorted(avg_prices.items()):
-            writer.writerow({
-                'neighbourhood_group': neighbourhood_group,
-                'room_type': room_type,
-                'average_price': avg,
-            })
+        for row in iter_summary_rows(avg_prices):
+            writer.writerow(row)
 
 ###############################################################################
 ##### UNIT TESTS (Do not modify the code below!)
