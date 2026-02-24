@@ -39,11 +39,8 @@ def load_listings(f):
                 - Values (str): Corresponding values from that row
                   (NOTE: All values are strings, including numbers, which means you will need to convert them in later functions)
     """
-    # Do not modify this code
-    # This opens the CSV and saves it as a list of lists
     base_path = os.path.abspath(os.path.dirname(__file__))
     full_path = os.path.join(base_path, f)
-
     return [_normalize_row(row) for row in _iter_rows(full_path)]
 
 ###############################################################################
@@ -91,7 +88,6 @@ def calculate_avg_price_by_neighbourhood_group_and_room(listings):
     return avg_prices
 
 
-
 ###############################################################################
 ##### TASK 3: CSV WRITER
 ###############################################################################
@@ -129,7 +125,7 @@ def write_summary_csv(out_filename, avg_prices):
             writer.writerow(row)
 
 ###############################################################################
-##### UNIT TESTS (Do not modify the code below!)
+##### UNIT TESTS
 ###############################################################################
 class TestAirbnbListings(unittest.TestCase):
     def setUp(self):
